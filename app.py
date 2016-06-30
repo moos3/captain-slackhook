@@ -7,6 +7,10 @@ import json
 SLACK_TOKEN = os.environ.get('SLACK_BOT_TOKEN',None)
 BOT_WEBHOOK_SECRET = os.environ.get('SLACK_WEBHOOK_SECRET', None)
 BOT_NAME = os.environ.get('BOT_NAME', None)
+BOT_IMAGE_URL = os.environ.get('BOT_IMAGE_URL', None)
+BOT_DEBUG = os.environ.get('BOT_DEBUG',False)
+BOT_USERNAME = os.environ.get('BOT_USERNAME', 'captainSlackHook')
+
 
 app = Flask(__name__)
 slack_client = SlackClient(SLACK_TOKEN)
@@ -45,10 +49,10 @@ def datadog():
         if 'message' in data or 'event' in data:
             message = messageBuilder(data)
             if 'message' in data:
-                call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username="endpointTest", icon_emoji=':alien:')
+                call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL)
 
             if 'event' in data:
-                call = slack_client.api_call("chat.postMessage", channel=send_channel, username="endpointTest", icon_emoji=':alien:', attachments=json.dumps(message))
+                call = slack_client.api_call("chat.postMessage", channel=send_channel, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL, attachments=json.dumps(message))
 
             if call['ok'] == True:
                 response_message = 'Sent Message to Slack'
@@ -69,4 +73,4 @@ def test():
   return Response('It works!')
 
 if __name__ == '__main__':
-  app.run(debug=False)
+  app.run(debug=BOT_DEBUG)
