@@ -79,5 +79,7 @@ def test():
 
 
 bot.wsgi_app = ProxyFix(bot.wsgi_app)
+application = bot
+
 if __name__ == '__main__':
   bot.run(debug=BOT_DEBUG)
