@@ -1,21 +1,15 @@
 import os
 from flask import Flask, request, Response
 from slackclient import SlackClient
-from twilio import twiml
-from twilio.rest import TwilioRestClient
 import pprint
 import json
 
 SLACK_TOKEN = os.environ.get('SLACK_BOT_TOKEN',None)
 BOT_WEBHOOK_SECRET = os.environ.get('SLACK_WEBHOOK_SECRET', None)
-TWILIO_NUMBER = os.environ.get('TWILIO_NUMBER',None)
-USER_NUMBER = os.environ.get('USER_NUMBER', None)
 BOT_NAME = os.environ.get('BOT_NAME', None)
-
 
 app = Flask(__name__)
 slack_client = SlackClient(SLACK_TOKEN)
-#twilio_client = TwilioRestClient()
 
 def messageBuilder(data):
     if 'event' in data:
@@ -34,30 +28,10 @@ def messageBuilder(data):
                 event_message[str(k)] = str(v)
 
         event_message['fields'] = [fields]
-        message = {"attachments":[event_message]}
+        message = [ event_message ]
     else:
         message = str(data['message'])
     return message
-
-@app.route('/twilio', methods=['POST'])
-def twilio():
-  response = twiml.Response()
-  if request.form['From'] == USER_NUMBER:
-    message = request.form['Body']
-    slack_client.api_call("chat.postMessage", channel="#general",
-        text=message, username="twiliobot",
-        icon_emoji=':robot_face:')
-  return Response(response.toxml(), mimetype="text/xml"), 200
-
-@app.route('/slack', methods=['POST'])
-def slack():
-  if request.form['token'] == BOT_WEBHOOK_SECRET:
-    channel = request.form['channel_name']
-    username = request.form['user_name']
-    text = request.form['text']
-    response_message = username + " in " + channel + " says: " + text
-#    twilio_client.messages.create(to=USER_NUMBER, from_=TWILIO_NUMBER,
-#        body=response_message)
 
 @app.route('/send', methods=['POST'])
 def datadog():
@@ -68,21 +42,22 @@ def datadog():
         else:
             send_channel = '#general'
 
-        message = messageBuilder(data)
+        if 'message' in data or 'event' in data:
+            message = messageBuilder(data)
+            if 'message' in data:
+                call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username="endpointTest", icon_emoji=':alien:')
 
-        if 'message' in data:
-            call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username="endpointTest", icon_emoji=':alien:')
-            pprint.pprint(call)
+            if 'event' in data:
+                call = slack_client.api_call("chat.postMessage", channel=send_channel, username="endpointTest", icon_emoji=':alien:', attachments=json.dumps(message))
 
-        if 'event' in data:
-            pprint.pprint(json.dumps(message))
-            call = slack_client.api_call("chat.postMessage", channel=send_channel, username="endpointTest", icon_emoji=':alien:', attachments=message)
-            pprint.pprint(call)
+            if call['ok'] == True:
+                response_message = 'Sent Message to Slack'
+            else:
+                response_message = 'Failed to Send Message to Slack'
 
-        if call['ok'] == True:
-            response_message = 'Sent Message to Slack'
         else:
-            response_message = 'Failed to Send Message to Slack'
+            response_message = "Your json must have either a message object or attachemnt object. See documentation."
+
     else:
         response_message = 'failed to authenticate'
 
@@ -93,6 +68,5 @@ def datadog():
 def test():
   return Response('It works!')
 
-
 if __name__ == '__main__':
-  app.run(debug=True)
+  app.run(debug=False)
