@@ -1,16 +1,20 @@
 import os
+import json
 from flask import Flask, request, Response
 from slackclient import SlackClient
 from werkzeug.contrib.fixers import ProxyFix
-import pprint
-import json
+from os.path import join, dirname
+from dotenv import load_dotenv
 
-SLACK_TOKEN = os.environ.get('SLACK_BOT_TOKEN',None)
-BOT_WEBHOOK_SECRET = os.environ.get('SLACK_WEBHOOK_SECRET', None)
-BOT_NAME = os.environ.get('BOT_NAME', None)
-BOT_IMAGE_URL = os.environ.get('BOT_IMAGE_URL', None)
-BOT_DEBUG = os.environ.get('BOT_DEBUG',False)
-BOT_USERNAME = os.environ.get('BOT_USERNAME', 'captainSlackHook')
+dotenv_path = join(dirname(__file__), '.env')
+load_dotenv(dotenv_path)
+
+SLACK_TOKEN = os.getenv('SLACK_BOT_TOKEN',None)
+BOT_WEBHOOK_SECRET = os.getenv('SLACK_WEBHOOK_SECRET', None)
+BOT_NAME = os.getenv('BOT_NAME', None)
+BOT_IMAGE_URL = os.getenv('BOT_IMAGE_URL', None)
+BOT_DEBUG = os.getenv('BOT_DEBUG',False)
+BOT_USERNAME = os.getenv('BOT_USERNAME', 'captainSlackHook')
 
 
 bot = Flask(__name__)
