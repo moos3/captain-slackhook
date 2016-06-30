@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, Response
 from slackclient import SlackClient
+from werkzeug.contrib.fixers import ProxyFix
 import pprint
 import json
 
@@ -72,5 +73,7 @@ def datadog():
 def test():
   return Response('It works!')
 
+
+app.wsgi_app = ProxyFix(app.wsgi_app)
 if __name__ == '__main__':
   app.run(debug=BOT_DEBUG)
