@@ -35,6 +35,12 @@ Supports sending multiple events at once. Supports any values that can been foun
 ```
 
 Message: (Simple message)
+
+If you added the following to your json object on a message ```"hipchat":{
+"rooms": ['roomnumber'] } It will message each of those rooms as the API key
+person. If you want notification style messages you can do this: ```"hipchat":{
+"rooms": ['roomnumber'], "notify":{ "color":"green" } }```
+
 ```
 {
 	"message": "test message again",

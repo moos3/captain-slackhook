@@ -100,8 +100,12 @@ def send_slack():
             if 'message' in data:
                 call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL)
                 if 'hipchat' in data:
-                    for r in data['hipchat']['rooms']:
-                        hipchat_message(r, send_message)
+                    if 'notify' in data['hipchat']:
+                        for r in data['hipchat']['rooms']:
+                            hipchat_notify(r, message, data['hipchat']['notify']['color'], True)
+                    else:
+                        for r in data['hipchat']['rooms']:
+                            hipchat_message(r, message)
 
             if 'event' in data:
                 call = slack_client.api_call("chat.postMessage", channel=send_channel, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL, attachments=json.dumps(message))
