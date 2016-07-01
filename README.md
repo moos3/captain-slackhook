@@ -7,19 +7,30 @@ Supports the following objects, to be posted using a json.
 You can set override the channel by specifying it before declaring events or a message.
 
 Event: (Slack Attachment Api)
-Supports sending multiple events at once. Supports any values that can been found in the attachment documentation for slack. Reference here [Api Doc](https://api.slack.com/docs/message-attachments)
-Priority and value will automatically mapped to the fields. If you can short but declaring it to override the default of False. 
+
+Supports sending multiple events at once. Supports any values that can been found in the attachment documentation for slack. Reference here [Api Doc](https://api.slack.com/docs/message-attachments) 
 ```
 {
-	"event": [{
-		"title": "its alive!",
-		"priority": "Defcon",
-		"value": "Double Take",
-		"color": "green",
-		"title_link": "https://en.wikipedia.org/wiki/DEFCON",
-		"image_url": "http://i.imgur.com/o65azK1.jpg"
+"event": [{
+	"title": "Multiple Event Testing Event 1",
+	"fields": [{
+		"title": "Defcon",
+		"value": "Double Take"
 	}],
-	"token": "ghYHapu1yZ9PfK"
+	"color": "green"
+}, {
+	"title": "Multiple Event testing, Event 2",
+	"fields": [{
+		"title": "Defcon",
+		"value": "Double Take"
+	}, {
+		"title": "Second field",
+		"short": true,
+		"value": "this is a super long field value"
+	}],
+	"color": "danger"
+}],
+"token": "ghYHapu1yZ9PfK"
 }
 ```
 
