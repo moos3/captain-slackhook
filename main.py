@@ -23,23 +23,25 @@ def messageBuilder(data):
     if 'event' in data:
         message = []
         for event_data in data['event']:
-        #    event_data = data['event'][0]
-            fields = { "short": False }
+            fields = []
             event_message = {"pretext":"Incomming Notification",
                             "author_name":BOT_NAME,
                             "fallback": "Event Triggered",
             }
             for k,v in event_data.iteritems():
-                if str(k) == 'priority' or str(k) == 'value':
-                    if str(k) == 'priority':
-                        k = 'title'
-                    fields[str(k)] = str(v)
-                elif str('k') == 'short':
-                    fields['short'] = v
+                if k == 'fields':
+                    for _field in v:
+                        sub_message = {}
+                        for key, value in _field.iteritems():
+                            if str('key') == 'short':
+                                sub_message[str(key)] = value
+                            else:
+                                sub_message[str(key)] = str(value)
+                        fields.append(sub_message)
                 else:
                     event_message[str(k)] = str(v)
 
-            event_message['fields'] = [fields]
+            event_message['fields'] = fields
             message.append(event_message)
     else:
         message = str(data['message'])
