@@ -7,7 +7,6 @@ from os.path import join, dirname
 from dotenv import load_dotenv
 import requests
 from sys import version_info
-import pprint
 
 if version_info < (2, 7, 9):
     # Disables SSL cert verification errors for Python < 2.7.9
@@ -108,10 +107,25 @@ def send_slack():
         else:
             send_channel = '#general'
 
+        if 'username' in data:
+            send_username = data['username']
+        else:
+            sned_username = BOT_USERNAME
+
+        if 'icon_url' in data:
+            send_icon = data['icon_url']
+        else:
+            send_icon = BOT_IMAGE_URL
+
+        if 'icon_emjoi' in data:
+            send_emjoi = data['icon_emoji']
+
         if 'message' in data or 'event' in data:
             message = messageBuilder(data)
             if 'message' in data:
-                call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL)
+                if 'slack' in data:
+                  call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username=send_username, icon_url=BOT_IMAGE_URL)
+
                 if 'hipchat' in data:
                     if 'notify' in data['hipchat']:
                         for r in data['hipchat']['rooms']:
@@ -121,7 +135,8 @@ def send_slack():
                             hipchat = hipchat_message(r, message)
 
             if 'event' in data:
-                call = slack_client.api_call("chat.postMessage", channel=send_channel, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL, attachments=json.dumps(message))
+                if 'slack' in data:
+                  call = slack_client.api_call("chat.postMessage", channel=send_channel, username=send_username, icon_url=BOT_IMAGE_URL, attachments=json.dumps(message))
 
             if call['ok'] == True:
                 response_message = json.dumps({"message":"Sent Message to Slack and Hipchat", "ok":True})
