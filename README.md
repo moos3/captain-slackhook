@@ -47,5 +47,58 @@ person. If you want notification style messages you can do this: ```"hipchat":{
 	"token": "ghYHapu1yZ9PfK"
 }
 ```
+By default it will send messages to #general in slack. Unless you add ```'channel':'#slackchannelname'```
 
 Calls will return a json object. That will contain ok set to True or False depending is the message send failed or was successful. Also will contian a message attribute with a message for logging.
+
+
+## Examples
+Simple Slack only:
+```
+{
+	"message": "@flu give bottle of (rum) or i'll take your soul ", 
+	'channel': "#rockemsockemrobots ", 
+	"token": "g123qdinlkdho2"
+}
+
+
+```
+
+Slack and Hipchat:
+
+```
+{
+	"message": "@flu give bottle of (rum) or i'll take your soul ", 
+	'channel': "#rockemsockemrobots ", 
+	"hipchat ": {
+		"rooms": ['672359'],
+		"notify": {
+			"color": "green"
+		}
+	}, 
+	"token": "g123qdinlkdho2"
+}
+
+```
+
+Slack Event:
+
+```
+{
+	"event": [{
+		"title": "Multiple Event Testing Event 1",
+		"priority": "Defcon",
+		"value": "Double Take",
+		"color": "good"
+	}, {
+		"title": "Multiple Event testing, Event 2",
+		"priority": "Defcon",
+		"value": "this is a extra long description. Blah blah balh blah.",
+		"short": True,
+		"color": "danger"
+	}],
+	"token": "g123qdinlkdho2"
+}
+```
+
+
