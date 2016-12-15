@@ -1,5 +1,6 @@
 import os
 import json
+import string
 from flask import Flask, request, Response
 from slackclient import SlackClient
 from werkzeug.contrib.fixers import ProxyFix
@@ -21,12 +22,12 @@ dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 SLACK_TOKEN = os.getenv('SLACK_BOT_TOKEN',None)
-BOT_WEBHOOK_SECRET = os.getenv('SLACK_WEBHOOK_SECRET', None)
+BOT_WEBHOOK_SECRET = os.getenv('SLACK_WEBHOOK_SECRET', None).replace("\'","") # replace is because how new python version wrap in single quotes
 BOT_NAME = os.getenv('BOT_NAME', None)
 BOT_IMAGE_URL = os.getenv('BOT_IMAGE_URL', None)
 BOT_DEBUG = os.getenv('BOT_DEBUG',False)
 BOT_USERNAME = os.getenv('BOT_USERNAME', 'captainSlackHook')
-HIPCHAT_API_TOKEN = os.getenv('HIPCHAT_API_TOKEN',None)
+HIPCHAT_API_TOKEN = os.getenv('HIPCHAT_API_TOKEN',None).replace("\'","") # replace is because how new python version wrap in single quotes
 
 bot = Flask(__name__)
 slack_client = SlackClient(SLACK_TOKEN)
@@ -63,7 +64,7 @@ def messageBuilder(data):
 def send_hipchat_payload(payload, url):
     headers = {'Content-type': 'application/json'}
     headers['Authorization'] = "Bearer " + HIPCHAT_API_TOKEN
-    r = http.request('POST', url, body=json.dumps(payload).encode('UTF-8'), headers=headers)
+    r = http.request('POST', url, body=json.dumps(payload).encode('UTF-8'), headers=headers,timeout=20)
     return (r.status, r.data)
 
 def hipchat_notify(room, message, color='yellow',
@@ -84,8 +85,8 @@ def hipchat_notify(room, message, color='yellow',
         'message_format': format,
         'color': color
     }
-    call = send_hipchat_payload(payload, url)
-    return call
+    status, data = send_hipchat_payload(payload, url)
+    return (status, data)
 
 def hipchat_message(room, message, host='api.hipchat.com'):
     if len(message) > 10000:
@@ -95,13 +96,63 @@ def hipchat_message(room, message, host='api.hipchat.com'):
     payload = {
         'message': message,
     }
-    call = send_hipchat_payload(payload, url)
-    return call
+    status, data = send_hipchat_payload(payload, url)
+    return (status, data)
+
+def slack_message(data):
+    if 'channel' in data:
+        send_channel = data['channel']
+    else:
+        send_channel = '#general'
+
+    if 'message' in data or 'event' in data:
+        message = messageBuilder(data)
+        if 'message' in data:
+            call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL)
+            if 'hipchat' in data:
+                if 'notify' in data['hipchat']:
+                    for r in data['hipchat']['rooms']:
+                        hipchat = hipchat_notify(r, message, data['hipchat']['notify']['color'], True)
+                else:
+                    for r in data['hipchat']['rooms']:
+                        hipchat = hipchat_message(r, message)
+
+def slack_end_event(data):
+    if 'channel' in data:
+        send_channel = data['channel']
+    else:
+        send_channel = '#general'
+
+    if 'event' in data:
+        message = messageBuilder(data)
+        call = slack_client.api_call("chat.postMessage", channel=send_channel, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL, attachments=json.dumps(message))
+
+def hipchat_process_message(data):
+    if 'notify' in data['hipchat']:
+        for r in data['hipchat']['rooms']:
+            status, data = hipchat_notify(r, message, data['hipchat']['notify']['color'], True)
+            if status == '401':
+                break
+        return data
+    else:
+        for r in data['hipchat']['rooms']:
+            status, data = hipchat_message(r, message)
+            if status == '401':
+                break
+        return data
 
 @bot.route('/send', methods=['POST'])
 def send_slack():
     call = []
     data = request.get_json()
+    print BOT_WEBHOOK_SECRET
+    print data
+    if data['token'] == BOT_WEBHOOK_SECRET:
+        print "tokens match"
+    else:
+        print "Token given " + data['token']
+        print "Secret webhook " + str(BOT_WEBHOOK_SECRET)
+
     if str(data['token']) == BOT_WEBHOOK_SECRET:
         if 'channel' in data:
             send_channel = data['channel']
@@ -112,6 +163,7 @@ def send_slack():
             message = messageBuilder(data)
             if 'message' in data:
                 call = slack_client.api_call("chat.postMessage", channel=send_channel, text=message, username=BOT_USERNAME, icon_url=BOT_IMAGE_URL)
+                print call
                 if 'hipchat' in data:
                     if 'notify' in data['hipchat']:
                         for r in data['hipchat']['rooms']:

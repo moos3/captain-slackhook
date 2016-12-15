@@ -14,3 +14,5 @@ websocket-client==0.37.0
 Werkzeug==0.11.10
 gunicorn
 python-dotenv
+AC-Flask-HipChat
+urllib3
