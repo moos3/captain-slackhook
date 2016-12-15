@@ -29,6 +29,13 @@ BOT_DEBUG = os.getenv('BOT_DEBUG',False)
 BOT_USERNAME = os.getenv('BOT_USERNAME', 'captainSlackHook')
 HIPCHAT_API_TOKEN = os.getenv('HIPCHAT_API_TOKEN',None).replace("\'","") # replace is because how new python version wrap in single quotes
 
+if SLACK_TOKEN == None:
+    raise ValueError('You must have env var of SLACK_TOKEN. With the slack incoming api token.')
+
+if HIPCHAT_API_TOKEN == None:
+    raise ValueError('You must have a env var of HIPCHAT_API_TOKEN. With the hipchat api token int it.')
+
+
 bot = Flask(__name__)
 http = urllib3.PoolManager()
 
@@ -77,6 +84,7 @@ class Base(object):
 
 class Slack(Base):
     method = "chat.postMessage"
+    rooms = []
 
     def __init__(self,token, bot_name, bot_image_url, bot_username):
         Base.__init__(self, token, bot_name, bot_image_url, bot_username)
@@ -109,13 +117,13 @@ class Slack(Base):
                 message.append(event_message)
         return json.dumps(message)
 
-    @channel.setter
-    def channel(self,channel):
-        self.channel = channel
+    @rooms.setter
+    def rooms(self,rooms):
+        self.rooms = rooms
 
     @property
-    def channel(self):
-        return self.channel
+    def rooms(self):
+        return self.rooms
 
     @property
     def method(self):
@@ -178,7 +186,7 @@ class Hipchat(Base):
         status = r.status
         if status == 401:
             return self.error_msg(status)
-        else if status in [200,204,201]:
+        elif status in [200,204,201]:
             return {"success":{"code":status, "message": "Message send secuessful", "type":"seccussful"}}
         else:
             return {"error":{"code":"405", "message":"Unable to handle request", "type":"bad_method"}}
@@ -201,7 +209,7 @@ def send_messages():
             slack_client = Slack(SLACK_TOKEN, BOT_NAME, BOT_IMAGE_URL,BOT_USERNAME)
 
             if slack_data['message']['type'] == 'event':
-                if len(slack_data['message']['rooms']) == 1
+                if len(slack_data['message']['rooms']) == 1:
                     slack_client.send_event(slack_data['message'])
                 elif len(slack_data['message']['rooms']) > 1:
                     for r in slack_data['message']['rooms']:
@@ -218,13 +226,13 @@ def send_messages():
             hipchat_data = data['hipchat']
             hipchat_client = Hipchat(HIPCHAT_API_TOKEN, BOT_NAME, BOT_IMAGE_URL, BOT_USERNAME)
             if hipchat_data['message']['type'] == 'notify':
-                if len(hipchat_data['message']['rooms']) == 1
+                if len(hipchat_data['message']['rooms']) == 1:
                     payload, url = hipchat_client.build_notify(hipchat_data['message'])
                     d = hipchat_client.send(payload, url)
                     if d['error']:
                         return Response(json.dumps(d), mimetype="application/json"), d['error']['code']
 
-                else if len(hipchat_data['message']['rooms']) > 1:
+                elif len(hipchat_data['message']['rooms']) > 1:
                     for r in hipchat_data['message']['rooms']:
                         payload, url = hipchat_client.build_notify(hipchat_data['message'])
                         d = hipchat_client.send(payload, url)
@@ -240,7 +248,7 @@ def send_messages():
 
 @bot.route('/', methods=['GET'])
 def index():
-  return Response(json.dumps({"success":{"message":"It works! Please see the docs to use!", "code":200, "type":"successful"}), mimetype="application/json"), 200
+  return Response(json.dumps({"success":{"message":"It works! Please see the docs to use!", "code":200, "type":"successful"}}), mimetype="application/json"), 200
 
 bot.wsgi_app = ProxyFix(bot.wsgi_app)
 application = bot
