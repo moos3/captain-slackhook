@@ -117,13 +117,14 @@ class Slack(Base):
                 message.append(event_message)
         return json.dumps(message)
 
+    @property
+    def rooms(self):
+        return self.rooms
+
     @rooms.setter
     def rooms(self,rooms):
         self.rooms = rooms
 
-    @property
-    def rooms(self):
-        return self.rooms
 
     @property
     def method(self):
