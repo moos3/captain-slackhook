@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import requests
 from sys import version_info
 import pprint
+import sys
 
 if version_info < (2, 7, 9):
     # Disables SSL cert verification errors for Python < 2.7.9
@@ -39,42 +40,41 @@ if HIPCHAT_API_TOKEN == None:
 bot = Flask(__name__)
 http = urllib3.PoolManager()
 
-
 class Base(object):
 
     def __init__(self,token,bot_name, bot_image_url,bot_username):
-        self.token = token
-        self.bot_name = bot_name
-        self.bot_image_url = bot_image_url
-        self.bot_username = bot_username
+        Base.token = token
+        Base.bot_name = bot_name
+        Base.bot_image_url = bot_image_url
+        Base.bot_username = bot_username
 
-    @property
+    #@property
     def bot_username(self):
-        return self.bot_username
+        return Base.bot_username
 
-    @property
+    #@property
     def token(sefl):
-        return self.token
+        return Base.token
 
-    @property
+    #@property
     def bot_name(self):
-        return self.name
+        return Base.name
 
-    @property
+    #@property
     def bot_image_url(self):
-        return self.bot_image_url
+        return Base.bot_image_url
 
-    @bot_image_url.setter
-    def bot_image_url(self, image_url):
-        self.bot_image_url = image_url
+    #@bot_image_url.setter
+    def set_bot_image_url(self, image_url):
+        Base.bot_image_url = image_url
 
-    @bot_name.setter
-    def bot_name(self, name):
-        self.bot_name = name
+    #@bot_name.setter
+    def set_bot_name(self, name):
+        Base.bot_name = name
 
-    @token.setter
-    def token(self, token):
-        self.token = token
+    #@token.setter
+    def set_token(self, token):
+        Base.token = token
 
     def error_msg(value):
         return {
@@ -87,7 +87,11 @@ class Slack(Base):
     rooms = []
 
     def __init__(self,token, bot_name, bot_image_url, bot_username):
-        Base.__init__(self, token, bot_name, bot_image_url, bot_username)
+        Base.set_bot_image_url(bot_image_url)
+        Base.set_bot_name(bot_name)
+        Base.set_token(token)
+        Base.set_bot_username(bot_username)
+        #super(self.__class__, self).__init__(token, bot_name, bot_image_url, bot_username)
 
     def connect(self):
         self.slack_client = SlackClient(self.token)
@@ -124,7 +128,6 @@ class Slack(Base):
     @rooms.setter
     def rooms(self,rooms):
         self.rooms = rooms
-
 
     @property
     def method(self):
@@ -194,19 +197,20 @@ class Hipchat(Base):
 
 
 def authorization(token):
-    if data['token'] == BOT_WEBHOOK_SECRET:
+    if token == BOT_WEBHOOK_SECRET:
         return True
     else:
         return False
 
 @bot.route('/send', methods=['POST'])
 def send_messages():
-
     data = request.get_json()
+    print request.get_json()
 
     if authorization(data['token']):
         if data['slack']:
             slack_data = data['slack']
+            print slack_data
             slack_client = Slack(SLACK_TOKEN, BOT_NAME, BOT_IMAGE_URL,BOT_USERNAME)
 
             if slack_data['message']['type'] == 'event':
@@ -240,12 +244,9 @@ def send_messages():
                         if d['error']:
                             break
                     return Response(json.dumps(d), mimetype="application/json"), d['error']['code']
-
-
     else:
         message = {"error": {"code":401, "message":"Authenticated requests only.", "type":"Unauthorized"} }
-        return Response(json.dumps(error), mimetype="application/json"), message['error']['code']
-
+        return Response(json.dumps(message), mimetype="application/json"), message['error']['code']
 
 @bot.route('/', methods=['GET'])
 def index():
