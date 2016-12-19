@@ -1,104 +1,189 @@
-### Slack Bot Using flask
-This is a simple bot for making webhook endpoints to avoid integations.
+# Captain Slackhook!
 
-### Currently Supported
-#### endpoint /send
-Supports the following objects, to be posted using a json.
-You can set override the channel by specifying it before declaring events or a message.
+This flask application was written as a way to inject messages and notifications into both slack and hipchat. I wrote this while working for When I Work. So all credit for the idea for this creation goes to my fellow devops engineers at When I Work.
 
-Event: (Slack Attachment Api)
+## Requirements
+This webhook bot requires Python 2.x and pip to be installed. I would also recommend that you install nginx in front of it. As this will run as a flask server.
 
-Supports sending multiple events at once. Supports any values that can been found in the attachment documentation for slack. Reference here [Api Doc](https://api.slack.com/docs/message-attachments) 
+## Installation
+1) Run a pip install
+```pip install -r requirements.txt```
+
+2) Copy the example.env file to .env and fill in the values
+
+3) python main.py This will start it.
+
+
+## Configuration
+We will need to generate a .env file for the application. In this section I'll go over some basic connfiguration for the application. Lets look at the .env file for the application.
+
 ```
+'DEFAULT_MIMETYPE',"application/json" # set the mime to send to the api's
+'SLACK_BOT_TOKEN' # Slack Token for a Incomming API
+'AUTH_WEBHOOK_SECRET' # replace is because how new python version wrap in single quotes
+'BOT_NAME' # Name of the bot.
+'BOT_IMAGE_URL' # Image to use for the Bot
+'BOT_DEBUG',False
+'BOT_USERNAME' # default bot username
+'HIPCHAT_API_TOKEN' # replace is because how new python version wrap in single quotes
+'HIPCHAT_API_HOST','api.hipchat.com' # allows for overridding for a private hipchat server.
+```
+
+Special Note `AUTH_WEBHOOK_SECRET` This is the Authentication token you want to use to allow services/scripts etc to talk to /send with out this then you can't send a message to the channels of slack or hipchat.
+Also if you dont have a token for either hipchat or slack it will not send.
+
+If you set any of these as system ENV Variables they will overwrite the .env file ones.
+
+
+## How to send a simple message
+To send a message to slack or hipchat. You will send a json object to the /send endpoint. Using the following examples. Things to note, Slack you can use the nice change names. Hipchat you must login to the webui and get the channel name to room number mapping. This has to do with hipchat using XMPP on the backend. To send a message to multiple rooms you just add them to the rooms json array as strings wrapped in double qoutes.
+
+1) Slack Only
+
+```json
 {
-"event": [{
-	"title": "Multiple Event Testing Event 1",
-	"fields": [{
-		"title": "Defcon",
-		"value": "Double Take"
-	}],
-	"color": "green"
-}, {
-	"title": "Multiple Event testing, Event 2",
-	"fields": [{
-		"title": "Defcon",
-		"value": "Double Take"
-	}, {
-		"title": "Second field",
-		"short": true,
-		"value": "this is a super long field value"
-	}],
-	"color": "danger"
-}],
-"token": "ghYHapu1yZ9PfK"
-}
-```
-
-Message: (Simple message)
-
-If you added the following to your json object on a message ```"hipchat":{
-"rooms": ['roomnumber'] } It will message each of those rooms as the API key
-person. If you want notification style messages you can do this: ```"hipchat":{
-"rooms": ['roomnumber'], "notify":{ "color":"green" } }```
-
-```
-{
-	"message": "test message again",
-	"token": "ghYHapu1yZ9PfK"
-}
-```
-By default it will send messages to #general in slack. Unless you add ```'channel':'#slackchannelname'```
-
-Calls will return a json object. That will contain ok set to True or False depending is the message send failed or was successful. Also will contian a message attribute with a message for logging.
-
-
-## Examples
-Simple Slack only:
-```
-{
-	"message": "@flu give bottle of (rum) or i'll take your soul ", 
-	'channel': "#rockemsockemrobots ", 
-	"token": "g123qdinlkdho2"
-}
-
-
-```
-
-Slack and Hipchat:
-
-```
-{
-	"message": "@flu give bottle of (rum) or i'll take your soul ", 
-	'channel': "#rockemsockemrobots ", 
-	"hipchat ": {
-		"rooms": ['672359'],
-		"notify": {
-			"color": "green"
+"slack": {
+		"message": {
+			"type": "message",
+			"rooms": ["#general"],
+			"body": "Hello everybody from Captain Slackhook!"
 		}
-	}, 
-	"token": "g123qdinlkdho2"
+	},
+	"token":"Your Token Here"
 }
-
 ```
 
-Slack Event:
+2) Hipchat Only
 
-```
+```json
 {
-	"event": [{
-		"title": "Multiple Event Testing Event 1",
-		"priority": "Defcon",
-		"value": "Double Take",
-		"color": "good"
-	}, {
-		"title": "Multiple Event testing, Event 2",
-		"priority": "Defcon",
-		"value": "this is a extra long description. Blah blah balh blah.",
-		"short": True,
-		"color": "danger"
-	}],
-	"token": "g123qdinlkdho2"
+	"hipchat": {
+		"message": {
+			"type": "message",
+			"rooms": ["1527413"],
+			"body": "Hello everybody from Captain Slackhook"
+		}
+	},
+	"token":"Your Token Here"
 }
 ```
 
+3) Slack and Hipchat
 
+```json
+{
+	"hipchat": {
+		"message": {
+			"type": "message",
+			"rooms": ["1527413"],
+			"body": "Hello everybody from Captain Slackhook"
+		}
+	},
+	"slack": {
+		"message": {
+			"type": "message",
+			"rooms": ["#general"],
+			"body": "Hello everybody from Captain Slackhook!"
+		}
+	},
+	"token":"Your Token Here"
+}
+
+```
+
+## Send notifications/events
+So in hipchat you can send room notifications and in slack they call these events to a room. Which just like messages you can send them to mutliple rooms. These objects are structured like so:
+
+1) Slack:
+
+```json
+{
+"slack": {
+        "message": {
+            "type": "event",
+            "rooms": ["#random"],
+            "body": [{
+                "title": "Multiple Events",
+                "fields": [{
+                    "title": "Defcon",
+                    "value": "Double Take"
+                }],
+                "color": "good"
+            }, {
+                "title": "Multiple Event testing, Event 2",
+                "fields": [{
+                    "title": "Defcon",
+                    "value": "Double Take"
+                }, {
+                    "title": "Second field",
+                    "short": true,
+                    "value": "this is a super long field value"
+                }],
+                "color": "danger"
+            }]
+        }
+    },
+    "token": "your token here"
+}
+```
+
+2) Hipchat
+
+```json
+{
+	"hipchat": {
+        "message": {
+            "type": "notify",
+            "rooms": ["2754509", "12310"],
+            "color": "green",
+            "body": "body"
+        }
+    },
+    "token": "your token here"
+
+}
+
+```
+
+3) Hipchat + Slack
+
+```json
+{
+"slack": {
+        "message": {
+            "type": "event",
+            "rooms": ["#random"],
+            "body": [{
+                "title": "Multiple Events",
+                "fields": [{
+                    "title": "Defcon",
+                    "value": "Double Take"
+                }],
+                "color": "good"
+            }, {
+                "title": "Multiple Event testing, Event 2",
+                "fields": [{
+                    "title": "Defcon",
+                    "value": "Double Take"
+                }, {
+                    "title": "Second field",
+                    "short": true,
+                    "value": "this is a super long field value"
+                }],
+                "color": "danger"
+            }]
+        }
+    },
+	"hipchat": {
+        "message": {
+            "type": "notify",
+            "rooms": ["2754509", "12310"],
+            "color": "green",
+            "body": "body"
+        }
+    },
+    "token": "your token here"
+
+}
+
+```
