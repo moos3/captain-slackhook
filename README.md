@@ -92,7 +92,7 @@ To send a message to slack or hipchat. You will send a json object to the /send 
 ```
 
 ## Send notifications/events
-So in hipchat you can send room notifications and in slack they call these events to a room. Which just like messages you can send them to mutliple rooms. These objects are structured like so:
+So in hipchat you can send room notifications and in slack they call these events to a room. Which just like messages you can send them to mutliple rooms. You can use both fields and actions in slack event messages.  These objects are structured like so:
 
 1) Slack:
 
@@ -186,4 +186,53 @@ So in hipchat you can send room notifications and in slack they call these event
 
 }
 
+```
+
+4) Slack actions
+
+```json
+{
+"slack": {
+			"message": {
+					"type": "event",
+					"rooms": ["#random"],
+					"event": [{
+					"fallback": "DevOps Office Hours Notice",
+					"color": "good",
+					"title": "Up Coming Events",
+					"callback_id": "wopr_game",
+					"actions": [
+							{
+									"name": "chess",
+									"text": "Chess",
+									"type": "button",
+									"value": "chess"
+							},
+							{
+									"name": "maze",
+									"text": "Falken's Maze",
+									"type": "button",
+									"value": "maze"
+							},
+							{
+									"name": "war",
+									"text": "Thermonuclear War",
+									"style": "danger",
+									"type": "button",
+									"value": "war",
+									"confirm": {
+											"title": "Are you sure?",
+											"text": "Wouldn't you prefer a good game of chess?",
+											"ok_text": "Yes",
+											"dismiss_text": "No"
+									}
+							}
+					],
+					"footer": "Delivered by The Captain!",
+					"footer_icon": "http://www.hotelroomsearch.net/im/hotels/gr/the-captain-9.jpg"
+			 }]
+			}
+		},
+		"token": "your token here"
+}
 ```
