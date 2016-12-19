@@ -92,13 +92,13 @@ class Slack(Base):
 
     def connect(self):
         from slackclient import SlackClient
-        print self.token
         self.client = SlackClient(self.token)
 
     def build_event(self, data):
         message = []
         for event_data in data['event']:
             fields = []
+            actions = []
             if 'pretext' in data['event']:
                 pretext = data['event']['pretext']
             else:
@@ -119,18 +119,30 @@ class Slack(Base):
                     for _field in v:
                         sub_message = {}
                         for key, value in _field.iteritems():
-                            if str('key') == 'short':
-                                sub_message[str(key)] = value
+                            print key
+                            if str(key) == 'short':
+                                sub_message[key] = value
                             else:
                                 sub_message[str(key)] = str(value)
                         fields.append(sub_message)
+                elif k == 'actions':
+                    for _actions in v:
+                        sub_actions = {}
+                        for key, value in _actions.iteritems():
+                            if str(key) == 'confirm':
+                                sub_actions[str(key)] = value
+                            else:
+                                sub_actions[str(key)] = str(value)
+                        actions.append(sub_actions)
                 else:
                     event_message[str(k)] = str(v)
+                if k == 'fields':
+                    event_message['fields'] = fields
+                elif k == 'actions':
+                    event_message['actions'] = actions
 
-                event_message['fields'] = fields
             message.append(event_message)
-        print json.dumps(message)
-        #return json.dumps(message)
+        return json.dumps(message)
 
     @property
     def method(self):
@@ -165,7 +177,6 @@ class Hipchat(Base):
         http = urllib3.PoolManager()
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = "Bearer " + self.token
-        print payload
         r = http.request('POST', url, body=json.dumps(payload).encode('UTF-8'), headers=headers, timeout=20)
         go = self.error_handler(r)
         return go
