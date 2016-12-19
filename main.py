@@ -99,10 +99,21 @@ class Slack(Base):
         message = []
         for event_data in data['event']:
             fields = []
-            event_message = {"pretext":"Incomming Notification",
+            if 'pretext' in data['event']:
+                pretext = data['event']['pretext']
+            else:
+                pretext = "Incoming Notification"
+
+            if 'fallback' in data['event']:
+                fallback = data['event']['fallback']
+            else:
+                fallback = "Event Triggered"
+
+            event_message = {"pretext":pretext,
                             "author_name":self.bot_name,
-                            "fallback": "Event Triggered",
+                            "fallback": fallback,
             }
+
             for k,v in event_data.iteritems():
                 if k == 'fields':
                     for _field in v:
@@ -118,7 +129,8 @@ class Slack(Base):
 
                 event_message['fields'] = fields
             message.append(event_message)
-        return json.dumps(message)
+        print json.dumps(message)
+        #return json.dumps(message)
 
     @property
     def method(self):
