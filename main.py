@@ -1,15 +1,23 @@
 import os
 import json
 import string
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
+import flask
+from flask_sqlalchemy import SQLAlchemy
 from slackclient import SlackClient
 from werkzeug.contrib.fixers import ProxyFix
 from os.path import join, dirname
-from dotenv import load_dotenv
 import requests
 from sys import version_info
 import pprint
 import sys
+import time
+from flask_dotenv import DotEnv
+
+
+__author__ = 'Richard <Moose> Genthner'
+__email__ = 'richard.genthner@wheniwork.com'
+__version__ = "2.0.0"
 
 if version_info < (2, 7, 9):
     # Disables SSL cert verification errors for Python < 2.7.9
@@ -19,26 +27,17 @@ else:
     import urllib3
     urllib3.disable_warnings()
 
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
-
-# Variables for Running the Application
-DEFAULT_MIMETYPE=os.environ.get('DEFAULT_MIMETYPE',"application/json") # set the mime to send to the api's
-SLACK_TOKEN = os.environ.get('SLACK_BOT_TOKEN',None).replace("\'","") # Slack Token for a Incomming API
-AUTH_WEBHOOK_SECRET = os.environ.get('AUTH_WEBHOOK_SECRET', None).replace("\'","") # replace is because how new python version wrap in single quotes
-BOT_NAME = os.environ.get('BOT_NAME', None).replace("\'","") # Name of the bot.
-BOT_IMAGE_URL = os.environ.get('BOT_IMAGE_URL', None).replace("\'","") # Image to use for the Bot
-BOT_DEBUG = os.environ.get('BOT_DEBUG',False)
-BOT_USERNAME = os.environ.get('BOT_USERNAME', 'captainSlackHook').replace("\'","") # default bot username
-HIPCHAT_API_TOKEN = os.environ.get('HIPCHAT_API_TOKEN',None).replace("\'","") # replace is because how new python version wrap in single quotes
-HIPCHAT_API_HOST = os.environ.get('HIPCHAT_API_HOST', 'api.hipchat.com').replace("\'","") # allows for overridding for a private hipchat server.
-
-
-if SLACK_TOKEN == None and HIPCHAT_API_TOKEN == None:
-    raise ValueError('You must have env var of SLACK_TOKEN or HIPCHAT_API_TOKEN. With the slack incoming api token.')
-
 bot = Flask(__name__)
 http = urllib3.PoolManager()
+env = DotEnv()
+env.init_app(bot)
+
+if bot.config.get('SLACK_TOKEN') == None and bot.config.get('HIPCHAT_API_TOKEN') == None:
+    raise ValueError('You must have env var of SLACK_TOKEN or HIPCHAT_API_TOKEN. With the slack incoming api token.')
+
+'''
+Send Message API starts here
+'''
 
 class Base(object):
 
@@ -243,7 +242,7 @@ class Hipchat(Base):
 
 
 def authorization(token):
-    if token == AUTH_WEBHOOK_SECRET:
+    if token == bot.config.get('AUTH_WEBHOOK_SECRET'):
         return True
     else:
         return False
@@ -255,11 +254,11 @@ def send_messages():
 
     if authorization(data['token']):
         if 'slack' in data:
-            if SLACK_TOKEN == None:
+            if bot.config.get('SLACK_TOKEN') == None:
                 rtn_data['slack'] = {"error":{"type":"bad_request","message":"unable to send to Slack. No TOKEN provided", "code":"404"}}
             else:
                 slack_data = data['slack']
-                slack_client = Slack(SLACK_TOKEN, BOT_NAME, BOT_IMAGE_URL, BOT_USERNAME)
+                slack_client = Slack(bot.config.get('SLACK_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'))
 
                 if slack_data['message']['type'] == 'event':
                     if len(slack_data['message']['rooms']) == 1:
@@ -284,11 +283,11 @@ def send_messages():
                         rtn_data['slack'] = res
 
         if 'hipchat' in data:
-            if HIPCHAT_API_TOKEN == None:
+            if bot.config.get('HIPCHAT_API_TOKEN') == None:
                 rtn_data['hipchat'] = {"error":{"type":"bad_request","message":"unable to send to Hipchat. No TOKEN provided", "code":"404"}}
             else:
                 hipchat_data = data['hipchat']
-                hipchat_client = Hipchat(HIPCHAT_API_TOKEN, BOT_NAME, BOT_IMAGE_URL, BOT_USERNAME, HIPCHAT_API_HOST)
+                hipchat_client = Hipchat(bot.config.get('HIPCHAT_API_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'), bot.config.get('HIPCHAT_API_HOST'))
                 if hipchat_data['message']['type'] == 'notify':
                     if len(hipchat_data['message']['rooms']) == 1:
                         payload, url = hipchat_client.build_notify(hipchat_data['message']['rooms'][0], hipchat_data['message'])
@@ -315,17 +314,17 @@ def send_messages():
                                 break
                         rtn_data['hipchat'] = res
 
-        return Response(json.dumps(rtn_data), DEFAULT_MIMETYPE), 200
+        return Response(json.dumps(rtn_data), bot.config.get('DEFAULT_MIMETYPE')), 200
     else:
         message = {"error": {"code":401, "message":"Authenticated requests only.", "type":"Unauthorized"} }
-        return Response(json.dumps(message), DEFAULT_MIMETYPE), message['error']['code']
+        return Response(json.dumps(message), bot.config.get('DEFAULT_MIMETYPE')), message['error']['code']
 
 @bot.route('/', methods=['GET'])
 def index():
-  return Response(json.dumps({"success":{"message":"It works! Please see the docs to use!", "code":200, "type":"successful"}}), DEFAULT_MIMETYPE), 200
+  return Response(json.dumps({"success":{"message":"It works! Please see the docs to use!", "code":200, "type":"successful"}}), bot.config.get('DEFAULT_MIMETYPE')), 200
 
 bot.wsgi_app = ProxyFix(bot.wsgi_app)
 application = bot
 
 if __name__ == '__main__':
-  bot.run(debug=BOT_DEBUG)
+    bot.run()
