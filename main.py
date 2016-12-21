@@ -3,16 +3,15 @@ import json
 import string
 from flask import Flask, request, Response, jsonify
 import flask
-from flask_sqlalchemy import SQLAlchemy
 from slackclient import SlackClient
 from werkzeug.contrib.fixers import ProxyFix
 from os.path import join, dirname
+from flask_dotenv import DotEnv
 import requests
 from sys import version_info
 import pprint
 import sys
 import time
-from flask_dotenv import DotEnv
 
 
 __author__ = 'Richard <Moose> Genthner'
@@ -163,6 +162,33 @@ class Slack(Base):
         value = self.client.api_call(self.command, channel=room, username=self.bot_username, icon_url=self.bot_image_url, attachments=event)
         return value
 
+    def run(self, bot, data):
+        rtn_data = {}
+        slack_data = data['slack']
+        if slack_data['message']['type'] == 'event':
+            if len(slack_data['message']['rooms']) == 1:
+                rtn_data['slack'] = self.send_event(slack_data['message'], slack_data['message']['rooms'][0])
+
+            elif len(slack_data['message']['rooms']) > 1:
+                for r in slack_data['message']['rooms']:
+                    res = self.send_event(slack_data['message'], r)
+                    if 'error' in res:
+                        break
+                rtn_data['slack'] = res
+
+        if slack_data['message']['type'] == 'message':
+            if len(slack_data['message']['rooms']) == 1:
+                rtn_data['slack'] = self.send_message(slack_data['message']['body'], slack_data['message']['rooms'][0])
+
+            elif len(slack_data['message']['rooms']) > 1:
+                for r in slack_data['message']['rooms']:
+                    res = self.send_message(slack_data['message']['body'], r)
+                    if 'error' in res:
+                        break
+                rtn_data['slack'] = res
+
+        return rtn_data
+
 
 class Hipchat(Base):
 
@@ -171,6 +197,36 @@ class Hipchat(Base):
     def __init__(self,token, bot_name, bot_image_url, bot_username, host):
         Base.__init__(self, token, bot_name, bot_image_url, bot_username)
         self.host = host
+
+    def run(self, bot, data):
+        rtn_data = {}
+        hipchat_data = data['hipchat']
+        if hipchat_data['message']['type'] == 'notify':
+            if len(hipchat_data['message']['rooms']) == 1:
+                payload, url = self.build_notify(hipchat_data['message']['rooms'][0], hipchat_data['message'])
+                rtn_data['hipchat'] = self.send(payload, url)
+
+            elif len(hipchat_data['message']['rooms']) > 1:
+                for r in hipchat_data['message']['rooms']:
+                    payload, url = self.build_notify(r, hipchat_data['message'])
+                    res = self.send(payload, url)
+                    if 'error' in res:
+                        break
+                rtn_data['hipchat'] = res
+
+        if hipchat_data['message']['type'] == 'message':
+            if len(hipchat_data['message']['rooms']) == 1:
+                payload, url = self.build_message(hipchat_data['message']['rooms'][0], hipchat_data['message'])
+                rtn_data['hipchat'] = self.send(payload, url)
+
+            elif len(hipchat_data['message']['rooms']) > 1:
+                for r in hipchat_data['message']['rooms']:
+                    payload, url = self.build_message(r, hipchat_data['message'])
+                    res = self.send(payload, url)
+                    if 'error' in res:
+                        break
+                rtn_data['hipchat'] = res
+        return rtn_data
 
     def send(self, payload, url):
         http = urllib3.PoolManager()
@@ -252,67 +308,24 @@ def send_messages():
     data = request.get_json()
     rtn_data = {}
 
+    if not 'token' in data:
+        message = {"error": {"code":401, "message":"Authenticated requests only. You must past a token in your request.", "type":"Unauthorized"} }
+        return Response(json.dumps(message), bot.config.get('DEFAULT_MIMETYPE')), message['error']['code']
+
     if authorization(data['token']):
         if 'slack' in data:
             if bot.config.get('SLACK_TOKEN') == None:
                 rtn_data['slack'] = {"error":{"type":"bad_request","message":"unable to send to Slack. No TOKEN provided", "code":"404"}}
             else:
-                slack_data = data['slack']
                 slack_client = Slack(bot.config.get('SLACK_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'))
-
-                if slack_data['message']['type'] == 'event':
-                    if len(slack_data['message']['rooms']) == 1:
-                        rtn_data['slack'] = slack_client.send_event(slack_data['message'], slack_data['message']['rooms'][0])
-
-                    elif len(slack_data['message']['rooms']) > 1:
-                        for r in slack_data['message']['rooms']:
-                            res = slack_client.send_event(slack_data['message'], r)
-                            if 'error' in res:
-                                break
-                        rtn_data['slack'] = res
-
-                if slack_data['message']['type'] == 'message':
-                    if len(slack_data['message']['rooms']) == 1:
-                        rtn_data['slack'] = slack_client.send_message(slack_data['message']['body'], slack_data['message']['rooms'][0])
-
-                    elif len(slack_data['message']['rooms']) > 1:
-                        for r in slack_data['message']['rooms']:
-                            res = slack_client.send_message(slack_data['message']['body'], r)
-                            if 'error' in res:
-                                break
-                        rtn_data['slack'] = res
+                rtn_data = slack_client.run(bot, data)
 
         if 'hipchat' in data:
             if bot.config.get('HIPCHAT_API_TOKEN') == None:
                 rtn_data['hipchat'] = {"error":{"type":"bad_request","message":"unable to send to Hipchat. No TOKEN provided", "code":"404"}}
             else:
-                hipchat_data = data['hipchat']
-                hipchat_client = Hipchat(bot.config.get('HIPCHAT_API_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'), bot.config.get('HIPCHAT_API_HOST'))
-                if hipchat_data['message']['type'] == 'notify':
-                    if len(hipchat_data['message']['rooms']) == 1:
-                        payload, url = hipchat_client.build_notify(hipchat_data['message']['rooms'][0], hipchat_data['message'])
-                        rtn_data['hipchat'] = hipchat_client.send(payload, url)
-
-                    elif len(hipchat_data['message']['rooms']) > 1:
-                        for r in hipchat_data['message']['rooms']:
-                            payload, url = hipchat_client.build_notify(r, hipchat_data['message'])
-                            res = hipchat_client.send(payload, url)
-                            if 'error' in res:
-                                break
-                        rtn_data['hipchat'] = res
-
-                if hipchat_data['message']['type'] == 'message':
-                    if len(hipchat_data['message']['rooms']) == 1:
-                        payload, url = hipchat_client.build_message(hipchat_data['message']['rooms'][0], hipchat_data['message'])
-                        rtn_data['hipchat'] = hipchat_client.send(payload, url)
-
-                    elif len(hipchat_data['message']['rooms']) > 1:
-                        for r in hipchat_data['message']['rooms']:
-                            payload, url = hipchat_client.build_message(r, hipchat_data['message'])
-                            res = hipchat_client.send(payload, url)
-                            if 'error' in res:
-                                break
-                        rtn_data['hipchat'] = res
+                hipchat = Hipchat(bot.config.get('HIPCHAT_API_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'), bot.config.get('HIPCHAT_API_HOST'))
+                rtn_data = hipchat.run(bot, data)
 
         return Response(json.dumps(rtn_data), bot.config.get('DEFAULT_MIMETYPE')), 200
     else:
