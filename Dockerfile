@@ -1,6 +1,6 @@
 FROM alpine:3.4
 
-ENV GIT_BRANCH=rewrite
+ENV GIT_BRANCH=v2
 
 RUN apk add --update --no-cache git bash python py-pip && mkdir -p /srv/slackhook
 RUN git clone -b $GIT_BRANCH https://github.com/moos3/captain-slackhook.git /srv/slackhook
