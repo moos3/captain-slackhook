@@ -145,4 +145,4 @@ bot.wsgi_app = ProxyFix(bot.wsgi_app)
 application = bot
 
 if __name__ == '__main__':
-  bot.run(debug=BOT_DEBUG)
+  bot.run(host='0.0.0.0',debug=BOT_DEBUG)
