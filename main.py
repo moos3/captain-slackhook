@@ -29,7 +29,7 @@ env.init_app(bot)
 if bot.config.get('SLACK_TOKEN') == None and bot.config.get('HIPCHAT_API_TOKEN') == None:
     raise ValueError('You must have env var of SLACK_TOKEN or HIPCHAT_API_TOKEN. With the slack incoming api token.')
 
-myport = bot.config.get('DEFAULT_PORT')
+myport = int(bot.config.get('DEFAULT_PORT'))
 
 '''
 Send Message API starts here
