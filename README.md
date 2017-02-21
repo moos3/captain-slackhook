@@ -102,7 +102,7 @@ So in hipchat you can send room notifications and in slack they call these event
         "message": {
             "type": "event",
             "rooms": ["#random"],
-            "body": [{
+            "event": [{
                 "title": "Multiple Events",
                 "fields": [{
                     "title": "Defcon",
@@ -153,7 +153,7 @@ So in hipchat you can send room notifications and in slack they call these event
         "message": {
             "type": "event",
             "rooms": ["#random"],
-            "body": [{
+            "event": [{
                 "title": "Multiple Events",
                 "fields": [{
                     "title": "Defcon",
