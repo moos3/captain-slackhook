@@ -5,7 +5,6 @@ import requests
 from requests.exceptions import ConnectionError
 import sys
 import json
-import pprint
 
 class Empty:
     pass
