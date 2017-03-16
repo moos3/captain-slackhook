@@ -8,7 +8,6 @@ import requests
 from sys import version_info
 from models import Slack, Hipchat
 
-
 __author__ = 'Richard <Moose> Genthner'
 __email__ = 'richard.genthner@wheniwork.com'
 __version__ = "2.0.0"
@@ -21,8 +20,9 @@ else:
     import urllib3
     urllib3.disable_warnings()
 
-bot = Flask(__name__)
 http = urllib3.PoolManager()
+
+bot = Flask(__name__)
 env = DotEnv()
 env.init_app(bot)
 
@@ -55,14 +55,14 @@ def send_messages():
                 rtn_data['slack'] = {"error":{"type":"bad_request","message":"unable to send to Slack. No TOKEN provided", "code":"404"}}
             else:
                 slack_client = Slack(bot.config.get('SLACK_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'))
-                rtn_data = slack_client.run(bot, data)
+                rtn_data['slack'] = slack_client.run(bot, data)
 
         if 'hipchat' in data:
             if bot.config.get('HIPCHAT_API_TOKEN') == None:
                 rtn_data['hipchat'] = {"error":{"type":"bad_request","message":"unable to send to Hipchat. No TOKEN provided", "code":"404"}}
             else:
                 hipchat = Hipchat(bot.config.get('HIPCHAT_API_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'), bot.config.get('HIPCHAT_API_HOST'))
-                rtn_data = hipchat.run(bot, data)
+                rtn_data['hipchat'] = hipchat.run(bot, data)
 
         return Response(json.dumps(rtn_data), bot.config.get('DEFAULT_MIMETYPE')), 200
     else:

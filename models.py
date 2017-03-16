@@ -1,5 +1,26 @@
 from slackclient import SlackClient
+from sys import version_info
+import pprint
+import requests
+from requests.exceptions import ConnectionError
+import sys
 import json
+import pprint
+
+class Empty:
+    pass
+
+'''
+if version_info < (2, 7, 9):
+    # Disables SSL cert verification errors for Python < 2.7.9
+    import requests.packages.urllib3 as urllib3
+    urllib3.disable_warnings()
+else:
+    import urllib3
+    urllib3.disable_warnings()
+
+http = urllib3.PoolManager()
+'''
 
 class Base(object):
 
@@ -192,13 +213,18 @@ class Hipchat(Base):
         return rtn_data
 
     def send(self, payload, url):
-        http = urllib3.PoolManager()
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = "Bearer " + self.token
-        r = http.request('POST', url, body=json.dumps(payload).encode('UTF-8'), headers=headers, timeout=20)
-        go = self.error_handler(r)
-        return go
+        try:
+            r = requests.post(url, data=json.dumps(payload).encode('UTF-8'), headers=headers)
+            go = self.error_handler(r)
+        except requests.exceptions.ConnectionError as e:
+            err = Empty()
+            message = 'connection to %s failed!\n' % url
+            err.status = message
+            go = self.error_handler(err)
 
+        return go
 
     def build_notify(self, room, msg_obj):
         if 'color' in msg_obj:
