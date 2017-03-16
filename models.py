@@ -276,9 +276,9 @@ class Hipchat(Base):
         return (payload, url)
 
     def error_handler(self, r):
-        status = r.status
+        status = r.status_code
         if status == 401:
-            return self.error_msg(status)
+            return self.error_msg(r.raise_for_status())
         elif status in [200,204,201]:
             return {"success":{"code":status, "message": "Message send secuessful", "type":"seccussful"}}
         else:
