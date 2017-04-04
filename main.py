@@ -54,14 +54,24 @@ def send_messages():
             if bot.config.get('SLACK_TOKEN') == None:
                 rtn_data['slack'] = {"error":{"type":"bad_request","message":"unable to send to Slack. No TOKEN provided", "code":"404"}}
             else:
-                slack_client = Slack(bot.config.get('SLACK_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'))
+                if 'slack_token' in:
+                    TOKEN = data['slack_token']
+                else:
+                    TOKEN = bot.config.get('SLACK_TOKEN')
+
+                slack_client = Slack(TOKEN, bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'))
                 rtn_data['slack'] = slack_client.run(bot, data)
 
         if 'hipchat' in data:
             if bot.config.get('HIPCHAT_API_TOKEN') == None:
                 rtn_data['hipchat'] = {"error":{"type":"bad_request","message":"unable to send to Hipchat. No TOKEN provided", "code":"404"}}
             else:
-                hipchat = Hipchat(bot.config.get('HIPCHAT_API_TOKEN'), bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'), bot.config.get('HIPCHAT_API_HOST'))
+                if 'hipchat_token' in data:
+                    TOKEN = data['hipchat_token']
+                else:
+                    TOKEN = bot.config.get('HIPCHAT_API_TOKEN')
+
+                hipchat = Hipchat(TOKEN, bot.config.get('BOT_NAME'), bot.config.get('BOT_IMAGE_URL'), bot.config.get('BOT_USERNAME'), bot.config.get('HIPCHAT_API_HOST'))
                 rtn_data['hipchat'] = hipchat.run(bot, data)
 
         return Response(json.dumps(rtn_data), bot.config.get('DEFAULT_MIMETYPE')), 200

@@ -34,7 +34,6 @@ Also if you dont have a token for either hipchat or slack it will not send.
 
 If you set any of these as system ENV Variables they will overwrite the .env file ones.
 
-
 ## How to send a simple message
 To send a message to slack or hipchat. You will send a json object to the /send endpoint. Using the following examples. Things to note, Slack you can use the nice change names. Hipchat you must login to the webui and get the channel name to room number mapping. This has to do with hipchat using XMPP on the backend. To send a message to multiple rooms you just add them to the rooms json array as strings wrapped in double qoutes.
 
@@ -234,5 +233,22 @@ So in hipchat you can send room notifications and in slack they call these event
 			}
 		},
 		"token": "your token here"
+}
+```
+
+# Advance Usage
+You can override the slack api token by doing the following in your post
+
+```json
+{
+"slack": {
+		"message": {
+			"type": "message",
+			"rooms": ["#general"],
+			"body": "Hello everybody from Captain Slackhook!"
+		}
+	},
+	"token":"Your Token Here",
+	"slack_token": "awesome-teams-api-token"
 }
 ```
