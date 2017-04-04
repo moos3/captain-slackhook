@@ -54,7 +54,7 @@ def send_messages():
             if bot.config.get('SLACK_TOKEN') == None:
                 rtn_data['slack'] = {"error":{"type":"bad_request","message":"unable to send to Slack. No TOKEN provided", "code":"404"}}
             else:
-                if 'slack_token' in:
+                if 'slack_token' in data:
                     TOKEN = data['slack_token']
                 else:
                     TOKEN = bot.config.get('SLACK_TOKEN')
